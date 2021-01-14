@@ -6,6 +6,8 @@ There are two main scripts:
 - `icdf_from_image.py`, which generates ICDF / importance sampling visualizations from images
 - `icdf_varying_pdf.py`, which renders a video of CDF with varying PDF
 
+[Click here to see a video of the varying PDF animation.](https://www.youtube.com/watch?v=3y6-SvS8N4Q)
+
 ![](media/pdf0.png)
 ![](media/pdf0_overlay.png)
 ![](media/pdf0_sampling.png)
