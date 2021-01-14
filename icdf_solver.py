@@ -2,13 +2,13 @@
 
 from PIL import Image, ImageDraw
 
-def get_cdf_x(width, height, F):
+def _get_cdf_x(width, height, F):
     # find PDF along x axis
     total_x = 0
     pdf_x = [0 for i in range(width)]
     for x in range(0, width):
         for y in range(0, height):
-            value = float(F(x,y))
+            value = float(F(x/width,y/height))
             pdf_x[x] += value
             total_x += value
     if total_x > 0.0:
@@ -24,13 +24,13 @@ def get_cdf_x(width, height, F):
     
     return cdf_x
 
-def get_cdf_y_given_x(width, height, F):
+def _get_cdf_y_given_x(width, height, F):
     # find PDF along each column
     pdf_y_given_x = [[0 for i in range(height)] for j in range(width)] 
     for x in range(0, width):
         total_column = 0
         for y in range(0, height):
-            value = float(F(x,y))
+            value = float(F(x/width,y/height))
             pdf_y_given_x[x][y] = value
             total_column += value
         if total_column > 0:
@@ -47,27 +47,47 @@ def get_cdf_y_given_x(width, height, F):
 
     return cdf_y_given_x
 
-def inverse_cdf(u, v, width, height, cdf_x, cdf_y_given_x):
-    # Could be optimized with a binary search, but this is fast enough for my needs right now
+class InverseCDF:
+    def __init__(self, resolution, PDF):
+        self.resolution = resolution
+        
+        width, height = resolution
+        self.cdf_x = _get_cdf_x(width, height, PDF)
+        self.cdf_y_given_x = _get_cdf_y_given_x(width, height, PDF)
     
-    x = 0
-    for i in range(0, width):
-        x = i
-        if cdf_x[i] >= u:
-            break
-    
-    y = 0
-    for i in range(0, height):
-        y = i
-        if cdf_y_given_x[x][i] >= v:
-            break
-    
-    return (x,y)
+    def evaluate(self, u, v):
+        x = 0
+        for i in range(0, self.resolution[0]):
+            x = i
+            if self.cdf_x[i] >= u:
+                break
+        
+        y = 0
+        for i in range(0, self.resolution[1]):
+            y = i
+            if self.cdf_y_given_x[x][i] >= v:
+                break
+        
+        return (x / self.resolution[0], y / self.resolution[1])
 
 def render_grid(grid_img, grid_points, grid_resolution, width, height):
     grid_draw = ImageDraw.Draw(grid_img)
     def line(x,y,x2,y2):
-        grid_draw.line((x,y,x2,y2), fill=255)
+        grid_draw.line((x,y,x2,y2), fill=(0,0,255))
+    for gx in range(0, grid_resolution+1):
+        for gy in range(0, grid_resolution+1):
+            p = grid_points[gx][gy]
+            if gx != grid_resolution:
+                right = grid_points[gx+1][gy]
+                line(p[0], p[1], right[0], right[1])
+            if gy != grid_resolution:
+                down = grid_points[gx][gy+1]
+                line(p[0], p[1], down[0], down[1])
+
+def render_dots(grid_img, grid_points, grid_resolution, width, height):
+    grid_draw = ImageDraw.Draw(grid_img)
+    def line(x,y,x2,y2):
+        grid_draw.rectangle((x-2,y-2,x+2,y+2), fill=255)
     for gx in range(0, grid_resolution+1):
         for gy in range(0, grid_resolution+1):
             p = grid_points[gx][gy]
